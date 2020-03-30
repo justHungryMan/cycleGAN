@@ -42,12 +42,14 @@ def load_ckp(checkpoint_fpath, G, F, Dx = None, Dy = None, G_optimizer = None, F
     
     
 class Logger():
-    def __init__(self, n_epochs, batches_epoch):
+    def __init__(self, n_epochs, batches_epoch, image_step):
         self.viz = Visdom()
         self.n_epochs = n_epochs
         self.batches_epoch = batches_epoch
         self.epoch = 1
         self.batch = 1
+        self.step = 0
+        self.image_step = image_step
         self.prev_time = time.time()
         self.mean_period = 0
         self.losses = {}
@@ -56,6 +58,7 @@ class Logger():
 
 
     def log(self, losses=None, images=None):
+        self.step += 1
         self.mean_period += (time.time() - self.prev_time)
         self.prev_time = time.time()
 
@@ -77,11 +80,12 @@ class Logger():
         sys.stdout.write('ETA: %s' % (datetime.timedelta(seconds=batches_left*self.mean_period/batches_done)))
 
         # Draw images
-        for image_name, tensor in images.items():
-            if image_name not in self.image_windows:
-                self.image_windows[image_name] = self.viz.image(tensor2image(tensor.data), opts={'title':image_name})
-            else:
-                self.viz.image(tensor2image(tensor.data), win=self.image_windows[image_name], opts={'title':image_name})
+        if (self.step % self.,image_step == 0):
+            for image_name, tensor in images.items():
+                if image_name not in self.image_windows:
+                    self.image_windows[image_name] = self.viz.image(tensor2image(tensor.data), opts={'title':image_name})
+                else:
+                    self.viz.image(tensor2image(tensor.data), win=self.image_windows[image_name], opts={'title':image_name})
 
         # End of epoch
         if (self.batch % self.batches_epoch) == 0:

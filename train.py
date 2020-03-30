@@ -85,6 +85,8 @@ def main():
 
     print('[Start] : Cycle GAN Training')
 
+    logger = Logger(opt.n_epochs, len(data_loader), image_step=10)
+
     for epoch in range(opt.epochs):
         epoch = epoch + start_epoch + 1
         print("Epoch[{epoch}] : Start".format(epoch=epoch))
@@ -132,9 +134,14 @@ def main():
 
             F_loss = patch_loss(criterion, Dx_fake, True)
 
+            # identity loss
+            loss_identity = euclidean_l1(real_A, fake_A) + euclidean_l1(real_B, fake_B)
+
+            # cycle consistency
+            loss_cycle = euclidean_l1(F(fake_B), real_A) + euclidean_l1(G(fake_A), real_B)
 
             # Optimize G & F
-            loss = G_loss + F_loss + opt.lamda * (euclidean_l1(F(fake_B), real_A) + euclidean_l1(G(fake_A), real_B))
+            loss = G_loss + F_loss + opt.lamda * loss_cycle + opt.lamda * loss_identity * (0.5)
 
             loss.backward()
             G_optimizer.step()
@@ -147,7 +154,28 @@ def main():
                 batch_image = torch.cat((torch.cat((real_A, real_B), 3), torch.cat((fake_A, fake_B), 3)), 2)
 
                 torchvision.utils.save_image(denorm(batch_image[0]), opt.training_result + 'result_{result_name}_ep{epoch}_{step}.jpg'.format(result_name=opt.result_name,epoch=epoch, step=(step + 1) * opt.batch_size))
-        
+            
+            # http://localhost:8097
+            logger.log(
+                losses={
+                    'loss_G': G_loss,
+                    'loss_F': F_loss,
+                    'loss_identity':, loss_identity,
+                    'loss_cycle': loss_cycle,
+                    'total_G_loss': loss,
+                    'loss_Dx': Dx_loss,
+                    'loss_Dy': Dy_loss,
+                    'total_D_loss': (Dx_loss + Dy_loss),
+                },
+                images={
+                    'real_A': real_A,
+                    'real_B': real_B,
+                    'fake_A': fake_A,
+                    'fake)B': fake_B,
+                },
+            )
+
+
         torch.save({
             'epoch': epoch,
             'G_model': G.state_dict(),
