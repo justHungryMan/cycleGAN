@@ -1,6 +1,5 @@
 import torch
 from torch import nn, optim
-from torch.utils.data import Dataset, DataLoader
 import torchvision
 from torchvision import transforms, utils
 from PIL import Image
@@ -9,6 +8,12 @@ import argparse
 import glob
 import os
 import datetime
+import time
+import sys
+import random
+from visdom import Visdom
+
+
 
 def to_variable(x):
     if torch.cuda.is_available():
@@ -41,9 +46,15 @@ def load_ckp(checkpoint_fpath, G, F, Dx = None, Dy = None, G_optimizer = None, F
     return G, F, Dx, Dy, G_optimizer, F_optimizer, Dx_optimizer, Dy_optimizer, epoch
     
     
+def tensor2image(tensor):
+    image = 127.5*(tensor[0].cpu().float().numpy() + 1.0)
+    if image.shape[0] == 1:
+        image = np.tile(image, (3,1,1))
+    return image.astype(np.uint8)
+
 class Logger():
-    def __init__(self, n_epochs, batches_epoch, image_step):
-        self.viz = Visdom()
+    def __init__(self, n_epochs, batches_epoch, image_step, port = 8097):
+        self.viz = Visdom(port=port)
         self.n_epochs = n_epochs
         self.batches_epoch = batches_epoch
         self.epoch = 1
@@ -66,9 +77,9 @@ class Logger():
 
         for i, loss_name in enumerate(losses.keys()):
             if loss_name not in self.losses:
-                self.losses[loss_name] = losses[loss_name].data[0]
+                self.losses[loss_name] = losses[loss_name].item()
             else:
-                self.losses[loss_name] += losses[loss_name].data[0]
+                self.losses[loss_name] += losses[loss_name].item()
 
             if (i+1) == len(losses.keys()):
                 sys.stdout.write('%s: %.4f -- ' % (loss_name, self.losses[loss_name]/self.batch))
@@ -80,7 +91,7 @@ class Logger():
         sys.stdout.write('ETA: %s' % (datetime.timedelta(seconds=batches_left*self.mean_period/batches_done)))
 
         # Draw images
-        if (self.step % self.,image_step == 0):
+        if (self.step % self.image_step == 0):
             for image_name, tensor in images.items():
                 if image_name not in self.image_windows:
                     self.image_windows[image_name] = self.viz.image(tensor2image(tensor.data), opts={'title':image_name})

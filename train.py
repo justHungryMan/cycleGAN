@@ -85,7 +85,7 @@ def main():
 
     print('[Start] : Cycle GAN Training')
 
-    logger = Logger(opt.n_epochs, len(data_loader), image_step=10)
+    logger = Logger(opt.epochs, len(data_loader), image_step=10)
 
     for epoch in range(opt.epochs):
         epoch = epoch + start_epoch + 1
@@ -160,7 +160,7 @@ def main():
                 losses={
                     'loss_G': G_loss,
                     'loss_F': F_loss,
-                    'loss_identity':, loss_identity,
+                    'loss_identity': loss_identity,
                     'loss_cycle': loss_cycle,
                     'total_G_loss': loss,
                     'loss_Dx': Dx_loss,
@@ -171,7 +171,7 @@ def main():
                     'real_A': real_A,
                     'real_B': real_B,
                     'fake_A': fake_A,
-                    'fake)B': fake_B,
+                    'fake_ B': fake_B,
                 },
             )
 
